@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Moon, Sun, FolderOpen, FileText, Menu, X, BookOpen, ListTree } from 'lucide-react';
+import { Moon, Sun, FolderOpen, FileText, Menu, X, BookOpen, ListTree, Pencil, Save, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useDocs, type DocFile } from '@/hooks/useDocs';
 
@@ -56,16 +57,26 @@ function makeHeadingId(raw: string, seen: Map<string, number>): string {
 }
 
 export default function Home() {
-  const { source, loading, error, openFolder, openFiles } = useDocs();
+  const { source, loading, error, openFolder, openFiles, saveContent } = useDocs();
   const [activePath, setActivePath] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [dark, setDark] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveNote, setSaveNote] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
   }, [dark]);
+
+  // Switching documents leaves edit mode and clears any save notice.
+  useEffect(() => {
+    setEditMode(false);
+    setSaveNote(null);
+  }, [activePath]);
 
   const activeFile: DocFile | undefined = useMemo(
     () => source?.files.find((f) => f.path === activePath) ?? source?.files[0],
@@ -114,6 +125,28 @@ export default function Home() {
 
   const scrollToHeading = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const startEdit = () => {
+    if (!activeFile) return;
+    setDraft(activeFile.content);
+    setSaveNote(null);
+    setEditMode(true);
+  };
+
+  const handleSave = async () => {
+    if (!activeFile) return;
+    setSaving(true);
+    setSaveNote(null);
+    try {
+      const note = await saveContent(activeFile, draft);
+      setSaveNote(note);
+      setEditMode(false);
+    } catch (e) {
+      setSaveNote((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const sidebar = (
@@ -188,6 +221,12 @@ export default function Home() {
             <FolderOpen className="mr-1 h-3.5 w-3.5" />
             打开文件夹
           </Button>
+          {activeFile && !editMode && (
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={startEdit}>
+              <Pencil className="mr-1 h-3.5 w-3.5" />
+              编辑
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDark((d) => !d)}>
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
@@ -246,30 +285,59 @@ export default function Home() {
             </div>
           ) : (
             <div className="mx-auto flex max-w-6xl gap-8 px-5 py-8 sm:px-8">
-              <article className="markdown min-w-0 flex-1">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {activeFile.content}
-                </ReactMarkdown>
-              </article>
-              {toc.length > 1 && (
-                <nav className="sticky top-8 hidden h-fit w-52 shrink-0 xl:block">
-                  <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <ListTree className="h-3.5 w-3.5" /> 目录
-                  </p>
-                  <ul className="space-y-1 border-l text-[13px]">
-                    {toc.map((t, i) => (
-                      <li key={`${t.id}-${i}`}>
-                        <button
-                          onClick={() => scrollToHeading(t.id)}
-                          className="block w-full truncate text-left leading-relaxed text-muted-foreground transition-colors hover:text-foreground"
-                          style={{ paddingLeft: `${(t.depth - 1) * 12 + 12}px` }}
-                        >
-                          {t.text}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
+              {editMode ? (
+                <div className="flex min-w-0 flex-1 flex-col" style={{ height: 'calc(100vh - 7rem)' }}>
+                  <div className="mb-3 flex items-center gap-2">
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                    <span className="truncate text-sm font-medium">{activeFile.name}</span>
+                    {saveNote && <span className="truncate text-xs text-destructive">{saveNote}</span>}
+                    <span className="ml-auto flex shrink-0 gap-2">
+                      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditMode(false)}>
+                        <Eye className="mr-1 h-3.5 w-3.5" />
+                        取消
+                      </Button>
+                      <Button size="sm" className="h-8 text-xs" disabled={saving} onClick={handleSave}>
+                        <Save className="mr-1 h-3.5 w-3.5" />
+                        {saving ? '保存中…' : '保存'}
+                      </Button>
+                    </span>
+                  </div>
+                  <Textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    spellCheck={false}
+                    placeholder="# 开始输入 Markdown…"
+                    className="min-h-0 w-full flex-1 resize-none rounded-lg border bg-muted/40 p-4 font-mono text-[13px] leading-relaxed focus-visible:ring-1"
+                  />
+                </div>
+              ) : (
+                <>
+                  <article className="markdown min-w-0 flex-1">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {activeFile.content}
+                    </ReactMarkdown>
+                  </article>
+                  {toc.length > 1 && (
+                    <nav className="sticky top-8 hidden h-fit w-52 shrink-0 xl:block">
+                      <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <ListTree className="h-3.5 w-3.5" /> 目录
+                      </p>
+                      <ul className="space-y-1 border-l text-[13px]">
+                        {toc.map((t, i) => (
+                          <li key={`${t.id}-${i}`}>
+                            <button
+                              onClick={() => scrollToHeading(t.id)}
+                              className="block w-full truncate text-left leading-relaxed text-muted-foreground transition-colors hover:text-foreground"
+                              style={{ paddingLeft: `${(t.depth - 1) * 12 + 12}px` }}
+                            >
+                              {t.text}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </nav>
+                  )}
+                </>
               )}
             </div>
           )}

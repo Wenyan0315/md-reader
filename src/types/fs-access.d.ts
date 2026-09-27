@@ -12,6 +12,8 @@ interface FileSystemDirectoryHandle {
 
 interface FileSystemFileHandle {
   getFile(): Promise<File>;
+  queryPermission?(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
+  requestPermission?(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
   name: string;
   kind: 'file';
 }
