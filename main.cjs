@@ -70,7 +70,7 @@ function createWindow(port) {
     minWidth: 640,
     minHeight: 480,
     title: 'MD Reader',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#faf8f1', // 与亮色主题纸黄底色一致，避免启动白闪
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
