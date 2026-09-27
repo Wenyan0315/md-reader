@@ -1,0 +1,184 @@
+/* MD Reader — global tweaks + markdown typography */
+
+#root {
+  height: 100vh;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ---------- Markdown typography ---------- */
+
+.markdown {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: hsl(var(--foreground));
+  overflow-wrap: break-word;
+}
+
+.markdown > *:first-child {
+  margin-top: 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-weight: 600;
+  line-height: 1.3;
+  scroll-margin-top: 1.5rem;
+}
+
+.markdown h1 {
+  font-size: 1.75rem;
+  margin: 1.75em 0 0.75em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.markdown h1:first-child {
+  margin-top: 0;
+}
+
+.markdown h2 {
+  font-size: 1.375rem;
+  margin: 1.6em 0 0.65em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.markdown h3 {
+  font-size: 1.125rem;
+  margin: 1.4em 0 0.5em;
+}
+
+.markdown h4 {
+  font-size: 1rem;
+  margin: 1.2em 0 0.5em;
+}
+
+.markdown p {
+  margin: 0.85em 0;
+}
+
+.markdown a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: hsl(var(--primary) / 0.4);
+}
+
+.markdown a:hover {
+  text-decoration-color: hsl(var(--primary));
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 0.85em 0;
+  padding-left: 1.6em;
+}
+
+.markdown ul {
+  list-style: disc;
+}
+
+.markdown ol {
+  list-style: decimal;
+}
+
+.markdown li > ul,
+.markdown li > ol {
+  margin: 0.25em 0;
+}
+
+.markdown li + li {
+  margin-top: 0.25em;
+}
+
+.markdown blockquote {
+  margin: 1em 0;
+  padding: 0.15em 1em;
+  border-left: 3px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+
+.markdown blockquote > *:first-child {
+  margin-top: 0.3em;
+}
+
+.markdown blockquote > *:last-child {
+  margin-bottom: 0.3em;
+}
+
+.markdown code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: hsl(var(--muted));
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+}
+
+.markdown pre {
+  margin: 1em 0;
+  padding: 0.9em 1em;
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.markdown pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.markdown .table-wrap {
+  margin: 1em 0;
+  overflow-x: auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.markdown th,
+.markdown td {
+  padding: 0.5em 0.9em;
+  border-bottom: 1px solid hsl(var(--border));
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown th {
+  font-weight: 600;
+  background: hsl(var(--muted) / 0.5);
+}
+
+.markdown tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown hr {
+  margin: 1.75em 0;
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.markdown img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.markdown input[type="checkbox"] {
+  margin-right: 0.4em;
+  accent-color: hsl(var(--primary));
+}
