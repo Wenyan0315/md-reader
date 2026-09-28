@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Moon, Sun, FolderOpen, FileText, Menu, X, BookOpen, ListTree, Pencil, Save, Eye } from 'lucide-react';
+import { Moon, Sun, FolderOpen, FileText, Menu, X, BookOpen, ListTree, Pencil, Save, Eye, Import } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,8 +56,70 @@ function makeHeadingId(raw: string, seen: Map<string, number>): string {
   return n === 1 ? base : `${base}-${n}`;
 }
 
+const MAX_FILES = 500;
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '__pycache__', 'venv', '.venv']);
+
+/** Recursively read a FileSystemEntry (from drag & drop) into DocFile list. */
+async function readEntry(entry: FileSystemEntry, prefix: string, out: DocFile[]): Promise<void> {
+  if (out.length >= MAX_FILES) return;
+  if (entry.isFile) {
+    const file = await new Promise<File>((resolve, reject) => (entry as FileSystemFileEntry).file(resolve, reject));
+    if (file.name.toLowerCase().endsWith('.md')) {
+      out.push({
+        path: `${prefix}${file.name}`,
+        name: file.name,
+        content: await file.text(),
+        origin: 'files',
+      });
+    }
+  } else if (entry.isDirectory) {
+    if (SKIP_DIRS.has(entry.name)) return;
+    const reader = (entry as FileSystemDirectoryEntry).createReader();
+    let batch: FileSystemEntry[];
+    // readEntries returns batches of up to 100 — loop until empty.
+    do {
+      batch = await new Promise<FileSystemEntry[]>((resolve, reject) => reader.readEntries(resolve, reject));
+      for (const child of batch) {
+        await readEntry(child, `${prefix}${entry.name}/`, out);
+      }
+    } while (batch.length > 0 && out.length < MAX_FILES);
+  }
+}
+
+/** Extract all .md files from a drop event's DataTransfer. */
+async function readDroppedItems(dt: DataTransfer): Promise<DocFile[]> {
+  const out: DocFile[] = [];
+  const items = Array.from(dt.items);
+  const hasEntryApi = items.some((it) => typeof it.webkitGetAsEntry === 'function');
+
+  if (hasEntryApi) {
+    for (const item of items) {
+      if (out.length >= MAX_FILES) break;
+      const entry = item.webkitGetAsEntry?.();
+      if (entry) {
+        await readEntry(entry, '', out);
+      } else {
+        // No entry backing (e.g. some synthetic or partial drops) — fall back to plain file.
+        const file = item.getAsFile();
+        if (file && file.name.toLowerCase().endsWith('.md')) {
+          out.push({ path: file.name, name: file.name, content: await file.text(), origin: 'files' });
+        }
+      }
+    }
+  } else {
+    // Fallback: plain files only (no directory support).
+    for (const file of Array.from(dt.files)) {
+      if (out.length >= MAX_FILES) break;
+      if (file.name.toLowerCase().endsWith('.md')) {
+        out.push({ path: file.name, name: file.name, content: await file.text(), origin: 'files' });
+      }
+    }
+  }
+  return out;
+}
+
 export default function Home() {
-  const { source, loading, error, openFolder, openFiles, saveContent } = useDocs();
+  const { source, loading, error, openFolder, openFiles, saveContent, addFiles } = useDocs();
   const [activePath, setActivePath] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [dark, setDark] = useState(false);
@@ -66,7 +128,9 @@ export default function Home() {
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveNote, setSaveNote] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragDepth = useRef(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
@@ -149,6 +213,41 @@ export default function Home() {
     }
   };
 
+  // ---------- drag & drop import ----------
+  const hasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes('Files');
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragActive(true);
+  };
+
+  const handleDragLeave = () => {
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) {
+      dragDepth.current = 0;
+      setDragActive(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (hasFiles(e)) e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragActive(false);
+    try {
+      const docs = await readDroppedItems(e.dataTransfer);
+      addFiles(docs);
+    } catch {
+      setSaveNote('读取拖入内容失败');
+    }
+  };
+
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="p-3 space-y-2">
@@ -199,7 +298,13 @@ export default function Home() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
+    <div
+      className="flex h-screen flex-col bg-background text-foreground"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {/* Header */}
       <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setNavOpen(true)}>
@@ -343,6 +448,17 @@ export default function Home() {
           )}
         </main>
       </div>
+
+      {/* Drag & drop overlay */}
+      {dragActive && (
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="rounded-2xl border-2 border-dashed border-primary/60 bg-card/90 px-14 py-12 text-center shadow-xl">
+            <Import className="mx-auto h-10 w-10 text-primary" />
+            <p className="mt-4 text-sm font-medium">松开以导入 .md 文件或整个文件夹</p>
+            <p className="mt-1 text-xs text-muted-foreground">将合并到当前文档列表，同名文件会被覆盖</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

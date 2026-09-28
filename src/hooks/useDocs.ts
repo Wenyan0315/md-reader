@@ -191,5 +191,23 @@ export function useDocs() {
     return note;
   }, []);
 
-  return { source, loading, error, openFolder, openFiles, saveContent };
+  /**
+   * Merge externally obtained docs (drag & drop) into the current source.
+   * No source yet → creates one; same path gets overwritten by the new version.
+   */
+  const addFiles = useCallback((incoming: DocFile[]) => {
+    if (incoming.length === 0) {
+      setError('拖入的内容里没有找到 .md 文件');
+      return;
+    }
+    setError(null);
+    setSource((prev) => {
+      if (!prev) return { name: '拖入的文件', files: sortFiles(incoming) };
+      const map = new Map(prev.files.map((f) => [f.path, f]));
+      for (const f of incoming) map.set(f.path, f);
+      return { ...prev, files: sortFiles([...map.values()]) };
+    });
+  }, []);
+
+  return { source, loading, error, openFolder, openFiles, saveContent, addFiles };
 }
