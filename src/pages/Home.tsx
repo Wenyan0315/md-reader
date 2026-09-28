@@ -456,13 +456,13 @@ export default function Home() {
         </main>
       </div>
 
-      {/* Drag & drop overlay */}
+      {/* Drag & drop overlay — subtle tint, never blocks interaction */}
       {dragActive && (
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="rounded-2xl border-2 border-dashed border-primary/60 bg-card/90 px-14 py-12 text-center shadow-xl">
-            <Import className="mx-auto h-10 w-10 text-primary" />
-            <p className="mt-4 text-sm font-medium">松开以导入 .md 文件或整个文件夹</p>
-            <p className="mt-1 text-xs text-muted-foreground">将合并到当前文档列表，同名文件会被覆盖</p>
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/30">
+          <div className="rounded-xl border-2 border-dashed border-primary/50 bg-card/95 px-8 py-5 text-center shadow-lg">
+            <Import className="mx-auto h-6 w-6 text-primary" />
+            <p className="mt-2 text-[13px] font-medium">松开以导入 .md 文件或整个文件夹</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">合并到当前列表，同名文件会被覆盖</p>
           </div>
         </div>
       )}
