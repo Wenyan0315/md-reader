@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { Moon, Sun, FolderOpen, FileText, Menu, X, BookOpen, ListTree, Pencil, Save, Eye, Import } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -418,7 +421,11 @@ export default function Home() {
               ) : (
                 <>
                   <article className="markdown min-w-0 flex-1">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkMath]}
+                      rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
+                      components={markdownComponents}
+                    >
                       {activeFile.content}
                     </ReactMarkdown>
                   </article>

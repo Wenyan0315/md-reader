@@ -2,6 +2,28 @@
 
 本文展示阅读器对常见 Markdown 语法的渲染效果。
 
+## LaTeX 数学公式
+
+行内公式：质能方程 $E = mc^2$，以及欧拉恒等式 $e^{i\pi} + 1 = 0$ 都可以直接写在句子里。
+
+块级公式（上下标、分式、根号）：
+
+$$
+\hat{f}(\xi) = \int_{-\infty}^{\infty} f(x)\, e^{-2\pi i \xi x}\, dx
+$$
+
+求和与极限：
+
+$$
+\sum_{k=1}^{n} k = \frac{n(n+1)}{2}, \qquad \lim_{x \to 0} \frac{\sin x}{x} = 1
+$$
+
+矩阵：
+
+$$
+A = \begin{pmatrix} a & b \\ c & d \end{pmatrix}, \quad \det(A) = ad - bc
+$$
+
 ## 文本样式
 
 支持 **加粗**、*斜体*、~~删除线~~、`行内代码`，以及 [外部链接](https://obsidian.md)（新标签页打开）。
